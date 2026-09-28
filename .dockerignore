@@ -1,0 +1,6 @@
+# Only what the image needs: pyproject.toml, src/, models/model.joblib
+*
+!pyproject.toml
+!src/
+!models/model.joblib
+**/__pycache__

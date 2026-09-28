@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Churn Guard</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --card: #fff;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e5e7ef;
+        --accent: #0f766e;
+        --low: #059669;
+        --medium: #d97706;
+        --high: #dc2626;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b1020;
+          --card: #131a2e;
+          --ink: #e7eaf3;
+          --muted: #94a3b8;
+          --line: #243049;
+          --accent: #2dd4bf;
+          --low: #34d399;
+          --medium: #fbbf24;
+          --high: #f87171;
+          color-scheme: dark;
+        }
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Segoe UI", system-ui, sans-serif; }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 48px; }
+      h1 { margin: 0; font-size: 30px; letter-spacing: -0.5px; }
+      h1 span { color: var(--accent); }
+      .sub { color: var(--muted); margin: 6px 0 24px; }
+      .grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+      .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+      form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+      input, select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; }
+      button { grid-column: 1 / -1; font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 10px; padding: 12px; cursor: pointer; }
+      .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+      .presets button { grid-column: auto; background: transparent; color: var(--accent); border: 1px solid var(--line); padding: 6px 12px; font-size: 13px; }
+      .result { display: grid; align-content: start; gap: 14px; }
+      .prob { font-size: 56px; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .risk { display: inline-block; padding: 5px 12px; border-radius: 999px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; }
+      .risk.low { color: var(--low); background: color-mix(in srgb, var(--low) 14%, transparent); }
+      .risk.medium { color: var(--medium); background: color-mix(in srgb, var(--medium) 14%, transparent); }
+      .risk.high { color: var(--high); background: color-mix(in srgb, var(--high) 14%, transparent); }
+      .bar { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; }
+      .bar > div { height: 100%; background: var(--accent); width: 0; transition: width 0.4s ease; }
+      ul { margin: 0; padding-left: 18px; line-height: 1.6; }
+      .muted { color: var(--muted); font-size: 13px; }
+      footer { margin-top: 20px; color: var(--muted); font-size: 13px; display: flex; gap: 18px; flex-wrap: wrap; }
+      footer a { color: var(--accent); }
+      code { font-family: ui-monospace, Consolas, monospace; }
+      @media (max-width: 760px) { .grid, form { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Churn <span>Guard</span></h1>
+      <p class="sub">Predicts how likely a customer is to cancel their subscription, and why.</p>
+
+      <div class="grid">
+        <section class="card">
+          <div class="presets">
+            <button type="button" data-preset="risky">At-risk customer</button>
+            <button type="button" data-preset="loyal">Loyal customer</button>
+          </div>
+          <form id="form">
+            <label>Months as customer <input name="tenure_months" type="number" min="0" max="120" value="4" required /></label>
+            <label>Monthly bill ($) <input name="monthly_charges" type="number" step="0.01" min="1" value="89" required /></label>
+            <label>Support tickets <input name="support_tickets" type="number" min="0" value="3" required /></label>
+            <label>Logins (last 30 days) <input name="logins_last_30d" type="number" min="0" value="2" required /></label>
+            <label>Late payments <input name="late_payments" type="number" min="0" value="1" required /></label>
+            <label>Contract
+              <select name="contract"><option>month-to-month</option><option>one-year</option><option>two-year</option></select>
+            </label>
+            <label>Payment method
+              <select name="payment_method"><option value="invoice">invoice</option><option value="card">card</option><option value="bank_transfer">bank transfer</option></select>
+            </label>
+            <label>Plan
+              <select name="plan"><option>premium</option><option>standard</option><option>basic</option></select>
+            </label>
+            <button type="submit">Predict churn risk</button>
+          </form>
+        </section>
+
+        <section class="card result" aria-live="polite">
+          <div class="muted">Churn probability</div>
+          <div class="prob" id="prob">–</div>
+          <div class="bar"><div id="bar"></div></div>
+          <div><span class="risk" id="risk" hidden></span></div>
+          <div>
+            <div class="muted">Main reasons</div>
+            <ul id="factors"><li class="muted">Submit the form to see a prediction.</li></ul>
+          </div>
+        </section>
+      </div>
+
+      <footer>
+        <span>Model <code id="version">…</code> · AUC <span id="auc">…</span></span>
+        <span>Commit <code id="sha">…</code></span>
+        <a href="/docs">API docs</a>
+      </footer>
+    </main>
+
+    <script>
+      const PRESETS = {
+        risky: { tenure_months: 4, monthly_charges: 89, support_tickets: 3, logins_last_30d: 2, late_payments: 1, contract: "month-to-month", payment_method: "invoice", plan: "premium" },
+        loyal: { tenure_months: 48, monthly_charges: 45, support_tickets: 0, logins_last_30d: 20, late_payments: 0, contract: "two-year", payment_method: "card", plan: "standard" },
+      };
+      const form = document.getElementById("form");
+      const NUMBERS = ["tenure_months", "monthly_charges", "support_tickets", "logins_last_30d", "late_payments"];
+
+      document.querySelectorAll("[data-preset]").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          for (const [k, v] of Object.entries(PRESETS[btn.dataset.preset])) form.elements[k].value = v;
+          form.requestSubmit();
+        }),
+      );
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const body = Object.fromEntries(new FormData(form));
+        for (const k of NUMBERS) body[k] = Number(body[k]);
+        const res = await fetch("/predict", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const factors = document.getElementById("factors");
+        if (!res.ok) {
+          factors.innerHTML = `<li>Error ${res.status}: check the inputs.</li>`;
+          return;
+        }
+        const p = await res.json();
+        document.getElementById("prob").textContent = `${Math.round(p.churn_probability * 100)}%`;
+        document.getElementById("bar").style.width = `${p.churn_probability * 100}%`;
+        const risk = document.getElementById("risk");
+        risk.hidden = false;
+        risk.className = `risk ${p.risk}`;
+        risk.textContent = `${p.risk} risk`;
+        factors.replaceChildren(
+          ...(p.top_factors.length ? p.top_factors : ["no strong risk factors"]).map((f) => Object.assign(document.createElement("li"), { textContent: f })),
+        );
+      });
+
+      fetch("/health").then((r) => r.json()).then((h) => {
+        document.getElementById("version").textContent = h.model_version ?? "none";
+        document.getElementById("auc").textContent = h.model_auc?.toFixed(3) ?? "–";
+        document.getElementById("sha").textContent = h.git_sha;
+      });
+      form.requestSubmit();
+    </script>
+  </body>
+</html>
