@@ -1,6 +1,6 @@
 # Churn Guard
 
-[![CI/CD Pipeline](https://github.com/OWNER/REPO/actions/workflows/pipeline.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/pipeline.yml)
+[![CI/CD Pipeline](https://github.com/siele-tech/churn-guard/actions/workflows/pipeline.yml/badge.svg)](https://github.com/siele-tech/churn-guard/actions/workflows/pipeline.yml)
 
 **A customer-churn prediction API, shipped by a CI/CD pipeline with a model-quality gate.** It predicts how likely a subscription customer is to cancel, and explains why.
 
