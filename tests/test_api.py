@@ -22,10 +22,11 @@ def client(model_file, monkeypatch):
         yield c
 
 
-def test_health_reports_model(client):
+def test_health_reports_model(client, trained):
     body = client.get("/health").json()
     assert body["status"] == "ok"
-    assert body["model_version"] == "local"
+    # "local" on a laptop, the commit SHA in CI — the test must pass in both.
+    assert body["model_version"] == trained[0]["version"]
     assert body["model_auc"] > 0.78
 
 

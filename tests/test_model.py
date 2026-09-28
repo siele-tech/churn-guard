@@ -5,6 +5,7 @@ import pandas as pd
 from churn.config import DATA_PATH, TARGET
 from churn.data import generate_customers
 from churn.features import FEATURES, top_factors
+from churn.train import train
 
 
 def test_data_is_deterministic():
@@ -67,3 +68,10 @@ def test_risky_customer_scores_higher_than_loyal(trained):
     assert model.predict_proba(risky)[0, 1] > 0.7
     assert model.predict_proba(loyal)[0, 1] < 0.2
     assert "month-to-month contract" in top_factors(model, risky)
+
+
+def test_model_version_is_the_commit_in_ci(customers, monkeypatch):
+    monkeypatch.setenv("GITHUB_SHA", "abcdef1234567")
+    assert train(customers)[0]["version"] == "abcdef1"
+    monkeypatch.delenv("GITHUB_SHA")
+    assert train(customers)[0]["version"] == "local"
